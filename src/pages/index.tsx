@@ -31,15 +31,17 @@ const Content: React.FC = () => {
 
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
 
-  const { data: topics, refetch: refetchTopics } = api.topic.getAll.useQuery(
-    undefined,
-    {
-      enabled: sessionData?.user !== undefined,
-      onSuccess: (data) => {
-        setSelectedTopic(selectedTopic ?? data[0] ?? null);
-      },
-    }
-  );
+  const {
+    data: topics,
+    refetch: refetchTopics,
+    isLoading: topicsLoading,
+  } = api.topic.getAll.useQuery(undefined, {
+    enabled: sessionData?.user !== undefined,
+    onSuccess: (data) => {
+      console.log(data);
+      setSelectedTopic(selectedTopic ?? data[0] ?? null);
+    },
+  });
 
   const createTopic = api.topic.create.useMutation({
     onSuccess: () => {
@@ -68,23 +70,48 @@ const Content: React.FC = () => {
     },
   });
 
+  const deleteTopic = api.topic.delete.useMutation({
+    onSuccess: () => {
+      void refetchNotes();
+      void refetchTopics();
+    },
+  });
+
   return (
     <div className="mx-5 mt-5 grid grid-cols-4 gap-2">
       <div className="px-2">
         <ul className="menu rounded-box w-56 bg-base-100 p-2">
-          {topics?.map((topic) => (
-            <li key={topic.id}>
-              <a
-                href="#"
-                onClick={(evt) => {
-                  evt.preventDefault();
-                  setSelectedTopic(topic);
-                }}
-              >
-                {topic.title}
-              </a>
-            </li>
-          ))}
+          {topicsLoading ? (
+            <div>Loading...</div>
+          ) : (
+            topics?.map((topic) => (
+              <div key={topic.id} className="flex items-center gap-x-2">
+                <li
+                  className={
+                    selectedTopic?.id === topic.id
+                      ? "rounded-lg bg-neutral-100"
+                      : ""
+                  }
+                >
+                  <a
+                    href="#"
+                    onClick={(evt) => {
+                      evt.preventDefault();
+                      setSelectedTopic(topic);
+                    }}
+                  >
+                    {topic.title}
+                  </a>
+                </li>
+                <button
+                  className="btn-warning btn-xs btn px-5"
+                  onClick={() => deleteTopic.mutate({ id: topic.id })}
+                >
+                  Delete
+                </button>
+              </div>
+            ))
+          )}
         </ul>
         <div className="divider"></div>
         <input
